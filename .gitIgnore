@@ -1,4 +1,4 @@
 .env
-firebase
+/firebase
 /node_modules
 dev.js
