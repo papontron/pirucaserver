@@ -1,0 +1,4 @@
+.env
+firebase
+/node_modules
+dev.js
