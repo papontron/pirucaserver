@@ -15,7 +15,7 @@ require("dotenv").config();
 // require("./models/historialRecarga.model");
 // require("./models/historialCompra.model");
 // require("./models/historialVenta.model");
-readdirSync("./models").map(model=>require("./models/"+model))
+readdirSync("./models").map(model=>require("./models/"+model));
 
 
 mongoose.connect(keys.mongoUri);

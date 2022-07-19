@@ -206,4 +206,7 @@ module.exports = (app)=>{
       return res.send({mensaje:error.message});
     }    
   });
+  app.get("/",(req,res)=>{
+    res.send("<h1>hola mundo</h1>");
+  })
 };
