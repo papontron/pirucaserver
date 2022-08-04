@@ -16,6 +16,24 @@ module.exports = (app)=>{
     }
   });
 
+  app.post("/api/user/get_user_productos_by_page",verifyOrigin,verifyCredentials,async (req,res)=>{
+    const {user} = req;
+    const {token,refreshToken} = user;
+    const {page, productsPerPage, tiendaId} = req.body;
+    //pages can be: 1,2,3,4,5
+
+    const skip = (page-1)*productsPerPage
+
+    try{
+      const productos = await Producto.find({_user:user._id,_tiendas:{$in:[tiendaId]}}).skip(skip).limit(productsPerPage);
+      console.log({productos})
+      return res.send({mensaje:"success",token,refreshToken,productos});
+    }catch(e){
+      console.log(e.message);
+      return res.send({mensaje:e.message,token,refreshToken});
+    }
+  });
+
   app.post("/api/user/get_user_productos",verifyOrigin, verifyCredentials, async (req,res)=>{//fecth solo los productos del usuario
     try{  
       const productos = await Producto.find({_user:req.user.id});
@@ -33,51 +51,71 @@ module.exports = (app)=>{
       });
     }
   })
-
+  app.post("/api/user/get_total_productos_count",verifyOrigin,verifyCredentials, async (req,res)=>{
+    const {user} = req;
+    const {token,refreshToken,tiendaId} = user;
+    try{
+      const count = await Producto.find({_user:user._id,_tiendas:{$in:[tiendaId]}}).estimatedDocumentCount();
+      return res.send({mensaje:"success",token,refreshToken,count});
+    }catch(e){
+      console.log(e.message);
+      res.send({mensaje:e.message,token,refreshToken})
+    }
+  });
   //!modificar los productos de una determinada tienda
   app.post("/api/user/modificar_producto_tienda",verifyOrigin, verifyCredentials, async (req,res)=>{
+    const user = req.user;
+    const {token,refreshToken} = user;
     console.log("modificando producto");
     try{
       //actions: agregarTienda, quitarTienda
-      const user = req.user;
-      const {productoId,tiendaId,nombre,descripcion,precio,tags,imagen,boost,disponible} = req.body;
-      const productoInfo = {productoId,tiendaId,nombre,descripcion,precio,tags,imagen,boost,disponible}
+      
+      const {productoId,tiendaId,nombre,descripcion,precio,tags,imagen,boost,disponible,categoria} = req.body;
+     
+      const productoInfo = {productoId,tiendaId,nombre,descripcion,precio,tags,imagen,boost,disponible,categoria};
       //!recordar que los tags vienen en forma de string
       //verificar si las tienda enviada en el formulario pertenecen al usuario.
-      console.log({tags})
       const tienda = await Tienda.find({id:tiendaId,_user:user.id})
       if(!tienda){
         return res.send({
           mensaje:"no está autorizado para modificar este producto",
-          token:req.user.token,
-          refreshToken:req.user.refreshToken
+          token,
+          refreshToken
         });
       }
       //!modificamos de acuerdo a los valores recibidos
-      user.easyCoins -= boost;
+      const producto = await Producto.findOne({_id:productoId});
+
+      const price = parseInt(boost) - parseInt(producto.boost);
+      if(user.easyCoins<price){
+        return res.send({mensaje:"no tienes suficientes coins",token,
+        refreshToken})
+      }
+      const newCoins = Number(user.easyCoins) - Number(price);
+      console.log({newCoins})
+      user.easyCoins = newCoins.toFixed(2);
       await user.save();
+      io.in(user._id.toString()).emit("updatecoins",Number(price));
       //!convertimos los tags en un array
-      //const tagsArray = tags.split(",");
-      //console.log({tagsArray})
       await Producto.findByIdAndUpdate(productoId,
-        {$set:{nombre,descripcion,precio,tags,imagen,disponible:(disponible==='true')}},{$inc:{boost:boost}});
+        {$set:{nombre,descripcion,precio,tags,imagen,disponible:(disponible==='true')},boost,categoria});
       //const productos = await Producto.find({_user:user.id});
       io.emit("productoupdate",productoInfo);
       res.send({
         mensaje:"success",
-        token:req.user.token,
-        refreshToken:req.user.refreshToken,
+        token,
+        refreshToken
         //productos
       })
     }catch(error){
       res.send({
         mensaje:error.message,
-        token:req.user.token,
-        refreshToken:req.user.refreshToken
+        token,
+        refreshToken
       });
     }
 
-  })
+  });
 
   app.post("/api/user/eliminar_producto",verifyOrigin, verifyCredentials,async (req,res)=>{//borrar todo el producto de una tienda
     //!enviado desde /dashboard/editarTienda(y sus productos)
@@ -121,20 +159,23 @@ module.exports = (app)=>{
 
 
   //!crear un nuevo producto
-  app.post("/api/user/agregar_producto",verifyOrigin, verifyCredentials, async (req,res)=>{  
-
+  app.post("/api/user/agregar_producto",verifyOrigin, verifyCredentials, async (req,res)=>{
+    const {user} = req;
+    const {easyCoins,token,refreshToken} = user;
     try{
       //!enviado desde /dashboard/productos, solo lista todos los productos del usuario
       //! son 10 parametros
-      const {tiendasId,nombre,descripcion,precio,tags,imagen,boost,disponible,stock}=req.body;
-      if(!tiendasId||!nombre||!descripcion||!precio||!tags||!imagen||!boost||!disponible||!stock){
+      const {tiendasId,nombre,descripcion,precio,tags,imagen,boost,disponible,stock,categoria}=req.body;
+      if(!tiendasId||!nombre||!descripcion||!precio||!tags||!imagen||!boost||!disponible||!stock||!categoria){
         return res.send({
           mensaje:"debe llenar todos los campos",
-          token:req.user.token,
-          refreshToken:req.user.refreshToken
+          token,
+          refreshToken
         });
       }
-
+      if(easyCoins<boost){
+        return res.send({mensaje:"no tienes fondos suficientes para promocionar tu producto, prueba con otra cantidad",token,refreshToken})
+      }
       //const tagsArray = _.chain(tags).split(",").map(tag=>tag.trim()).value();
       const tiendasArray = _.chain(tiendasId).keys().map((key)=>{
         if(tiendasId[key]===true){
@@ -145,8 +186,8 @@ module.exports = (app)=>{
 
       if(tiendasArray.length===0){
         return res.send({
-          token:req.user.token,
-          refreshToken:req.user.refreshToken,
+          token,
+          refreshToken,
           mensaje:"debe indicar al menos una tienda para el producto"
         });
       }
@@ -163,11 +204,13 @@ module.exports = (app)=>{
       if(verificationErrors.length>0){
         return res.send({
           mensaje:"usted no posee las credenciales para realizar esta operación",
-          token:req.user.token,
-          refreshToken:req.user.refreshToken
+          token,
+          refreshToken
         });
       }
-
+      user.easyCoins = (user.easyCoins - boost).toFixed(2);
+      await user.save();
+      io.in(user._id.toString()).emit("updatecoins",Number(-boost));
       const newProducto = new Producto({
         _tiendas:tiendasArray,
         nombre,
@@ -175,6 +218,7 @@ module.exports = (app)=>{
         stock,
         precio,
         disponible,
+        categoria,
         tags:tags.replace(/\s+/g, ""),
         imagen,
         boost,

@@ -63,10 +63,11 @@ module.exports = (app)=>{
         hash,
         salt,
         imagen,
-        coordenadas
+        coordenadas,
+        pirula:"pirula"
       });
       const user = await newUser.save();
-      const token = getToken(user.id);
+      const token = getToken(user._id);
       const refreshToken = getRefreshToken(user.email);
       user.token = token;
       user.refreshToken = refreshToken;

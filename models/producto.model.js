@@ -8,6 +8,7 @@ const productoSchema = new mongoose.Schema({
   imagen:{type:String,required:true},
   boost:{type:Number,default:0},
   disponible:{type:Boolean,default:true},
+  categoria:{type:Object,required:true},
   stock:{type:Number,default:0},
   _user:{type:mongoose.Schema.Types.ObjectId,ref:"User"}
 });

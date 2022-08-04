@@ -234,7 +234,6 @@ module.exports = (app) =>{
     
 
   });
-
   app.post("/courier/get_entregas_iniciadas",verifyOrigin,verifyCredentials,verifyCourier,async (req,res)=>{
     const token = req.user.token;
     const refreshToken = req.user.refreshToken;
@@ -286,6 +285,7 @@ module.exports = (app) =>{
 
   app.get("/couriers/getcouriers",verifyOrigin, async (req,res)=>{
       const couriers = await Courier.find();
+      console.log({couriers})
       res.send({
         mensaje:"success",
         couriers

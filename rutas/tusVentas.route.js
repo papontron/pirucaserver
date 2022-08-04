@@ -17,7 +17,7 @@ module.exports = (app)=>{
     const {_recibo,_ventaId,estado,montoVenta} = req.body;
     const token=req.user.token;
     const refreshToken=req.user.refreshToken;
-
+    console.log({_recibo,_ventaId,estado,montoVenta});
     switch(estado){
       case "iniciado":
         //!actualizar la venta correspondiente dentro del recibo

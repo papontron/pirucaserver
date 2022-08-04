@@ -4,11 +4,15 @@ const {verifyPirula} = require("../middlewares/verifyPirula");
 const mongoose = require("mongoose");
 const {sendMensajeAndNotification}  = require("../functions/mensajes.functions");
 const {actualizarRecargaPendienteAndNotificate,getRecargasPendientes} = require("../functions/recargas.functions");
+const io = require("../io").getIo();
 const HistorialVenta = mongoose.model("historialventas");
 const User = mongoose.model("users");
 const Tienda = mongoose.model("tiendas");
 const Producto = mongoose.model("productos");
 const Courier = mongoose.model("couriers");
+const Categoria = mongoose.model("categorias");
+const SubCategoria = mongoose.model("subcategorias");
+const Marca = mongoose.model("marcas");
 
 module.exports = (app)=>{
 
@@ -70,6 +74,92 @@ module.exports = (app)=>{
       token,
       refreshToken
     });
+    }
+  });
+  app.post("/api/admin/getcategoriasandall",verifyOrigin,verifyCredentials,verifyPirula, async(req,res)=>{
+    const {token,refreshToken} = req.user;
+    try{
+      const subCategorias = await SubCategoria.find({});
+      const marcas = await Marca.find({});
+      const categorias = await Categoria.find({});
+      return res.send({mensaje:"success",token,refreshToken,categorias,subCategorias,marcas});
+    }catch(e){
+      console.log(e.message);
+      return res.send({mensaje:e.message,token,refreshToken});
+    }    
+  });
+
+  app.post("/api/admin/crearcategoria",verifyOrigin,verifyCredentials,verifyPirula,async(req,res)=>{
+    const {token,refreshToken} = req.user;
+    const {nombre} = req.body;
+    const codigo = nombre.trim().toLowerCase().normalize('NFD').replace(/[\s\u0300-\u036f]/g, "");
+    try{
+      const categoria = await new Categoria({nombre:nombre.toLowerCase(),codigo}).save();
+      io.emit("categoriaagregar",categoria);
+      return res.send({mensaje:"success",token,refreshToken});
+    }catch(e){
+      console.log(e.message);
+      res.send({mensaje:e.message,token,refreshToken});
+    }
+  });
+
+  app.post("/api/admin/eliminarcategoria",verifyOrigin,verifyCredentials,verifyPirula,async(req,res)=>{
+    const {token,refreshToken} = req.user;
+    const {_categoriaId} = req.body;
+    try{
+      await Categoria.deleteOne({_id:_categoriaId});
+    io.emit("categoriaeliminar",_categoriaId);
+    return res.send({mensaje:"success",token,refreshToken});
+    }catch(e){
+      console.log(e.message);
+      res.send({mensaje:e.message,token,refreshToken});
+    } 
+  });
+
+  app.post("/api/admin/eliminarcourier",verifyOrigin,verifyCredentials,verifyPirula,async(req,res)=>{
+    const {_courierId} = req.body;
+    const {token,refreshToken} = req.user;
+    try{
+      await Courier.deleteOne({_id:_courierId});
+      await User.updateOne(
+        {_courier:_courierId},
+        {$set:
+          {
+          _courier:new mongoose.Types.ObjectId(),
+          pirula:"pirula"
+          }
+        }
+      );
+      io.emit("courierdelete",_courierId);
+      return res.send({mensaje:"success",token,refreshToken});
+    }catch(e){
+      return res.send({mensaje:e.message,token,refreshToken});
+    }
+  });
+  
+  app.post("/api/admin/crearcourier",verifyOrigin,verifyCredentials,verifyPirula,async(req,res)=>{
+    const {nombres,apellidos,telefono,email,coordenadas} = req.body;
+    const {token,refreshToken} = req.user;
+    if(req.user.email===email){
+      return res.send({mensaje:"usted no puede convertirse en courier",token,refreshToken});
+    }
+    try{
+      const courier = await new Courier({nombres,apellidos,telefono,email,coordenadas}).save();
+      if(!courier){
+        return res.send({mensaje:"error creando courier",token,refreshToken});
+      }
+      const user = await User.findOneAndUpdate({email,telefono},{$set:{_courier:new mongoose.Types.ObjectId(courier._id),pirula:"courier"}},{new:true});
+      if(!user){
+        return res.send({mensaje:"el usuario no existe",token,refreshToken});
+      }
+      io.emit("courieragregar",courier);
+      res.send({
+        mensaje:"success",
+        token,refreshToken
+      });
+    }catch(e){
+      console.log(e.message);
+      res.send({mensaje:e.message,token,refreshToken});
     }
   });
   app.post("/api/admin/actualizar_recarga_pendiente",verifyOrigin,verifyCredentials,verifyPirula,async (req,res)=>{
