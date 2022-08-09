@@ -24,22 +24,34 @@ module.exports = (app)=>{
         {$match:{"ventas.estado":"iniciado"}},
         //{$lookup:{from:'users',localField:'_user:',foreignField:'_id',as:"vendedor"}}
       ]);
+
+      console.log({ventasIniciadas});
+
       const ventasI = await Promise.all(ventasIniciadas.map(async ventaIniciada=>{
         const {ventas,_user} = ventaIniciada;
         const {_comprador,_ventaId,_recibo,tiendas,_courier,createdAt} = ventas;
         const comprador = await User.findOne({_id:_comprador}).select("nombres apellidos coordenadas telefono");;
         const vendedor = await User.findOne({_id:_user}).select("nombres apellidos coordenadas telefono");;
         const courier = await Courier.findOne({_id:_courier}).select("nombres apellidos");
+
+        console.log({tiendas});
+
         const tiendas2 = await Promise.all(tiendas.map(async tienda=>{
 
           const {estado,productos} = tienda;
           
-          const productosFound = await Promise.all(productos.map(async producto => {
-            const foundProducto = await Producto.findOne({_id:producto._producto}).select("nombre descripcion");
-            return {...producto,nombre:foundProducto.nombre,descripcion:foundProducto.descripcion}
-          }));
+          // const productosFound = await Promise.all(productos.map(async producto => {
+          //   const foundProducto = await Producto.findOne({_id:producto._producto}).select("nombre descripcion");
+          //   console.log({foundProducto});
+          //   if(foundProducto){
+          //     return {...producto,nombre:foundProducto.nombre,descripcion:foundProducto.descripcion};
+          //   }
+          // }));
+
           const tiendaFound = await Tienda.findOne({_id:tienda._tienda}).select("nombre direccion telefono coordenadas");
-          return {estado,tiendaInfo:tiendaFound,productos:productosFound}
+
+          return {estado,tiendaInfo:tiendaFound,productos:productos}
+
         }));
 
         return {vendedor,comprador,courier,tiendas:tiendas2,fecha:createdAt,_ventaId,_recibo};
@@ -47,6 +59,7 @@ module.exports = (app)=>{
       
       res.send({mensaje:"success",token,refreshToken,ventasIniciadas:ventasI});
     }catch(e){
+      console.log(e)
       console.log({error:e.message});
       res.send({mensaje:e.message,token,refreshToken});
     }

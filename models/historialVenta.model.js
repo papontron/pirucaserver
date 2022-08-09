@@ -9,7 +9,7 @@ const ventaSchema = new mongoose.Schema({
   ticket:{type:String},
   tiendas:[{
     _tienda:{type:mongoose.Schema.Types.ObjectId,ref:"Tienda"},
-    nombre:{type:String},
+    tienda:{type:Object},
     codigoEntrega:{type:String,required:true},
     estado:{type:String,enum:["en tienda","en camino","entregado","cancelado","finalizado","expirado","no entregado"],default:"en tienda"},
     productos:[{

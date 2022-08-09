@@ -93,11 +93,14 @@ module.exports = (app) =>{
           //*calculo del monto de venta de esta tienda:
           const montoTienda = productosXtienda.reduce((a,producto)=>a+Number(producto.monto),0)
           //!tambien podriamos calcular el monto por cada tienda
-          const tiendaInfo = _.chain(cartItems).map(item=>item.tienda.id===thisTienda?item.tienda.nombre:null).compact().value();
+          const tiendaInfo = _.chain(cartItems).map(item=>{
+            console.log({tienda33:item.tienda})
+            return item.tienda.id===thisTienda?item.tienda:null
+            }).compact().value();
           const codigoEntrega = crypto.randomBytes(2).toString('hex');
           venta.tiendas.push({
             _tienda:thisTienda,
-            nombre:tiendaInfo[0],
+            tienda:tiendaInfo[0],
             productos:productosXtienda,
             monto:montoTienda,
             codigoEntrega,

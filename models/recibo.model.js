@@ -5,7 +5,7 @@ const subVentaSchema = new mongoose.Schema({
   _courier:{type:mongoose.Schema.Types.ObjectId,ref:"Courier"},
   tiendas:[{
     _tienda:{type:mongoose.Schema.Types.ObjectId,ref:"Tienda"},
-    nombre:{type:String},
+    tienda:{type:Object},
     codigoEntrega:{type:String,required:true}, 
     estado:{type:String,enum:["en tienda","en camino","entregado","expirado","cancelado","no entregado"],default:"en tienda"},
     monto:{type:Number,required:true},

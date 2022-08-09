@@ -6,6 +6,19 @@ const Tienda = mongoose.model("tiendas");
 const {verifyOrigin} = require("../middlewares/verifyOrigin");
 const io = require("../io").getIo();
 module.exports = (app)=>{
+
+  app.get("/api/productos/categorias/:categoria",verifyOrigin, async (req,res)=>{
+    const {categoria} = req.params;
+    try{
+      const productos = await Producto.find({"categoria.codigo":categoria}).limit(50);
+      res.send({mensaje:"success",productos});
+
+    }catch(e){
+      console.log(e);
+      res.send({mensaje:e.message});
+    }
+  });
+
   app.get("/api/get_productos",verifyOrigin, async (req,res)=>{//enviar todos los productos a la web
     try{
       console.log("queriying productos");
