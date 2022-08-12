@@ -149,6 +149,25 @@ module.exports = (app) =>{
           io.in(vendedor.toString()).emit("ventaliquidar",{_recibo,estado:"finalizado",devolucion:null});
         });
 
+        //update vendidos y ventas en productos y tiendas respectivamente
+        const recibo = await Recibo.findOne({_id:_recibo});
+        console.log("recibo hallado:", recibo);
+        console.log("venta del recibo:", recibo.venta);
+
+        recibo.venta.forEach(async venta=>{
+          const {tiendas,estado} = venta;
+          if(estado==="finalizado"){
+            tiendas.forEach(async tienda=>{
+              const {_tienda,productos} = tienda;
+              await Tienda.findOneAndUpdate({_id:_tienda},{$inc:{ventas:1}});  
+              productos.forEach(async producto=>{
+                const {_producto,cantidad} = producto;
+                await Producto.findOneAndUpdate({_id:_producto},{$inc:{vendidos:cantidad,stock:-cantidad}});
+              })
+            });
+          }       
+        });
+
         console.log("todo ok success entregando venta");
         return res.send({mensaje:"success",token,refreshToken});   
   
@@ -250,20 +269,20 @@ module.exports = (app) =>{
 
       const entregasI = await Promise.all(entregasIniciadas.map(async ventaIniciada=>{
         const {ventas,_user} = ventaIniciada;
-        const {_comprador,_ventaId,_recibo,tiendas,_courier,estado,createdAt} = ventas;
-        console.log({_courier})
-        const comprador = await User.findOne({_id:_comprador}).select("nombres apellidos coordenadas telefono");
+        const {_comprador,comprador,_ventaId,_recibo,tiendas,_courier,estado,createdAt} = ventas;
+        // const comprador = await User.findOne({_id:_comprador}).select("nombres apellidos coordenadas telefono");
         const vendedor = await User.findOne({_id:_user}).select("nombres apellidos coordenadas telefono");
 
-        const tiendas2 = await Promise.all(tiendas.map(async tienda=>{
+        const tiendas2 = tiendas.map(tienda=>{
           const {estado,productos} = tienda;
-          const productosFound = await Promise.all(productos.map(async producto => {
-            const foundProducto = await Producto.findOne({_id:producto._producto}).select("nombre descripcion");
-            return {...producto,nombre:foundProducto.nombre,descripcion:foundProducto.descripcion}
-          }));
-          const tiendaFound = await Tienda.findOne({_id:tienda._tienda}).select("nombre direccion telefono coordenadas");
-          return {estado,tiendaInfo:tiendaFound,productos:productosFound}
-        }));
+          // const productosFound = await Promise.all(productos.map(async producto => {
+          //   const foundProducto = await Producto.findOne({_id:producto._producto}).select("nombre descripcion");
+          //   console.log({foundProducto})
+          //   return {...producto,nombre:foundProducto.nombre,descripcion:foundProducto.descripcion}
+          // }));
+          // const tiendaFound = await Tienda.findOne({_id:tienda._tienda}).select("nombre direccion telefono coordenadas");
+          return {estado,tiendaInfo:tienda.tienda,productos}
+        });
         return {vendedor,comprador,estado,_courier,tiendas:tiendas2,fecha:createdAt,_ventaId,_recibo};
       }));
       
@@ -274,7 +293,7 @@ module.exports = (app) =>{
         entregas:entregasI
       })
     }catch(e){
-      console.log(e.message);
+      console.log(e);
       res.send({
         mensaje:e.message,
         token,

@@ -33,7 +33,7 @@ exports.generarTicketVenta =async (_vendedor,_recibo)=>{
     <p>Estado: ${estado}</p>
   `;
 
-  const ventaBody = await Promise.all(tiendas.map(async tienda=>{
+  const ventaBody = (tiendas.map(async tienda=>{
     const {_tienda,monto,productos,estado,codigoEntrega} = tienda;
     const tuTienda = await Tienda.findOne({_id:_tienda});
 

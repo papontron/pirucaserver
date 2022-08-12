@@ -7,10 +7,11 @@ const {verifyOrigin} = require("../middlewares/verifyOrigin");
 const io = require("../io").getIo();
 module.exports = (app)=>{
 
-  app.get("/api/productos/categorias/:categoria",verifyOrigin, async (req,res)=>{
+  app.post("/api/productos/categorias/:categoria",verifyOrigin, async (req,res)=>{
     const {categoria} = req.params;
+    const {page} = req.body;
     try{
-      const productos = await Producto.find({"categoria.codigo":categoria}).limit(50);
+      const productos = await Producto.find({"categoria.codigo":categoria}).sort([["boost",-1]]).skip((page-1)*10).limit(10);
       res.send({mensaje:"success",productos});
 
     }catch(e){
@@ -68,11 +69,11 @@ module.exports = (app)=>{
     const {user} = req;
     const {token,refreshToken,tiendaId} = user;
     try{
-      const count = await Producto.find({_user:user._id,_tiendas:{$in:[tiendaId]}}).estimatedDocumentCount();
+      const count = await Producto.find({_user:user._id,_tiendas:{$in:[tiendaId]}}).countDocuments();
       return res.send({mensaje:"success",token,refreshToken,count});
     }catch(e){
       console.log(e.message);
-      res.send({mensaje:e.message,token,refreshToken})
+      res.send({mensaje:e.message,token,refreshToken});
     }
   });
   //!modificar los productos de una determinada tienda
@@ -85,7 +86,7 @@ module.exports = (app)=>{
       
       const {productoId,tiendaId,nombre,descripcion,precio,tags,imagen,boost,disponible,categoria} = req.body;
      
-      const productoInfo = {productoId,tiendaId,nombre,descripcion,precio,tags,imagen,boost,disponible,categoria};
+      // const productoInfo = {productoId,tiendaId,nombre,descripcion,precio,tags,imagen,boost,disponible,categoria};
       //!recordar que los tags vienen en forma de string
       //verificar si las tienda enviada en el formulario pertenecen al usuario.
       const tienda = await Tienda.find({id:tiendaId,_user:user.id})
@@ -96,24 +97,26 @@ module.exports = (app)=>{
           refreshToken
         });
       }
-      //!modificamos de acuerdo a los valores recibidos
+      
       const producto = await Producto.findOne({_id:productoId});
 
       const price = parseInt(boost) - parseInt(producto.boost);
+      //!verificacion si tiene coins suficientes para la operación:
       if(user.easyCoins<price){
         return res.send({mensaje:"no tienes suficientes coins",token,
         refreshToken})
       }
+      //!modificamos de acuerdo a los valores recibidos
       const newCoins = Number(user.easyCoins) - Number(price);
-      console.log({newCoins})
       user.easyCoins = newCoins.toFixed(2);
       await user.save();
       io.in(user._id.toString()).emit("updatecoins",Number(price));
       //!convertimos los tags en un array
-      await Producto.findByIdAndUpdate(productoId,
-        {$set:{nombre,descripcion,precio,tags,imagen,disponible:(disponible==='true')},boost,categoria});
+      const updatedProduct = await Producto.findByIdAndUpdate(productoId,
+        {$set:{nombre,descripcion,precio,tags,imagen,disponible:(disponible==='true')},boost,categoria},{new:true});
+      console.log({updatedProduct})
       //const productos = await Producto.find({_user:user.id});
-      io.emit("productoupdate",productoInfo);
+      io.emit("productoupdate",updatedProduct);
       res.send({
         mensaje:"success",
         token,

@@ -10,12 +10,32 @@ module.exports = (io)=>{
       async function getInitData(){
         console.log("sending initial data");
         try{
+          //tratar de fetchear solo tiendas cercanas
           const tiendas = await Tienda.find({});
-          const productos = await Producto.find({});
+          //fetchear solo productos de las tiendas cercanas
+          const productos = await Producto.find({}).sort([["boost",-1]]).limit(25);
+          const masVendidos = await Producto.find({}).sort([["vendidos",-1]]).limit(25);
+          const newArrivals = await Producto.find({}).sort([["createdAt",-1]]).limit(25);
+          //fetchear couriers cercanos
           const couriers = await Courier.find({});
           const categorias = await Categoria.find({});
+
+          async function fetchCategoriasCount(){
+            const categoriasCount = await Promise.all(categorias.map(async categoria=>{
+
+              const count = await Producto.findOne({"categoria.codigo":categoria.codigo}).countDocuments();
+
+              const newCategoria = {nombre:categoria.nombre,codigo:categoria.codigo,count};
+
+              return newCategoria;
+            }));
+            return categoriasCount;
+          }
+
+          const categoriasCount = await fetchCategoriasCount();
+
           //socket.emit("connected",{mensaje:"success",tiendas,productos}); averiguar las diferencias socket.emit vs io.emit
-          io.emit("connected",{mensaje:"success",tiendas,productos,couriers,categorias});
+          io.emit("connected",{mensaje:"success",tiendas,productos,couriers,categorias:categoriasCount,masVendidos,newArrivals});
         }catch(e){  
           io.emit("connected",{mensaje:"error al jalar las tiendas o productos"});
         }

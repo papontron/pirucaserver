@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const ventaSchema = new mongoose.Schema({
   _recibo:{type:mongoose.Schema.Types.ObjectId,ref:"Recibo"},
   _comprador:{type:mongoose.Schema.Types.ObjectId,ref:"User"},
-  comprador:{type:String},
+  comprador:{type:Object},
   _ventaId:{type:mongoose.Schema.Types.ObjectId,required:true},
   _courier:{type:mongoose.Schema.Types.ObjectId,ref:"Courier"},
   ticket:{type:String},

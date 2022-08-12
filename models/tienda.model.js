@@ -11,6 +11,8 @@ const tiendaSchema = new mongoose.Schema({
   descripcion:{type:String, required:true},
   tags:{type:String, required:true},
   createdAt:{type:Date,default:new Date()},
-  coordenadas:{type:Array,required:true}
+  coordenadas:{type:Array,required:true},
+  rating:{type:Array,default:[]},
+  ventas:{type:Number,default:0}
 });
 const Tienda = new mongoose.model("tiendas",tiendaSchema);

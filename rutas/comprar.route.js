@@ -16,6 +16,7 @@ module.exports = (app) =>{
     const fechaVencimiento = fecha.getTime()+1*1000*20;
     const {user,body} = req;
     const {cartItems,_courier} = body;
+    console.log({cartItems});
     const {token,refreshToken} = user;
     const monto = parseFloat(req.body.monto);
     const precioDelivery = parseFloat(req.body.precioDelivery)
@@ -29,8 +30,8 @@ module.exports = (app) =>{
     //! creamos un array con la info de cada vendedor
     const vendedoresInfo ={};
     await Promise.all(vendedores.map(async vendedor=>{
-      const vendedorInfo = await User.findOne({_id:vendedor}).select("nombres apellidos");
-      vendedoresInfo[vendedor] = vendedorInfo.nombres+" "+vendedorInfo.apellidos
+      const vendedorInfo = await User.findOne({_id:vendedor}).select("nombres apellidos coordenadas telefono");
+      vendedoresInfo[vendedor] = vendedorInfo;
     }));
 
     try{
@@ -38,7 +39,7 @@ module.exports = (app) =>{
        //la misma fecha para todos los procedimientos aqui requeridos
       const newRecibo={
         _comprador:user._id,
-        comprador:user.nombres+" "+user.apellidos,
+        comprador:{nombres:user.nombres,apellidos:user.apellidos,telefono:user.telefono,coordenadas:user.coordenadas},
         monto,
         precioDelivery,
         montoTotal:montoTotal,
@@ -75,7 +76,7 @@ module.exports = (app) =>{
         tiendasXvendedor.map(_tienda=>{
           const isDuplicated = _tiendas.includes(_tienda);
           if(!isDuplicated) _tiendas.push(_tienda);
-        })
+        });
 
         //*proveemos a cada tienda con sus respectivos productos
         _tiendas.forEach(thisTienda=>{
@@ -94,7 +95,7 @@ module.exports = (app) =>{
           const montoTienda = productosXtienda.reduce((a,producto)=>a+Number(producto.monto),0)
           //!tambien podriamos calcular el monto por cada tienda
           const tiendaInfo = _.chain(cartItems).map(item=>{
-            console.log({tienda33:item.tienda})
+            console.log({item});
             return item.tienda.id===thisTienda?item.tienda:null
             }).compact().value();
           const codigoEntrega = crypto.randomBytes(2).toString('hex');

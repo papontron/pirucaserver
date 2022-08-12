@@ -10,6 +10,7 @@ const productoSchema = new mongoose.Schema({
   disponible:{type:Boolean,default:true},
   categoria:{type:Object,required:true},
   stock:{type:Number,default:0},
-  _user:{type:mongoose.Schema.Types.ObjectId,ref:"User"}
-});
+  _user:{type:mongoose.Schema.Types.ObjectId,ref:"User"},
+  vendidos:{type:Number,default:0}
+},{timestamps:true});
 const Producto = new mongoose.model("productos",productoSchema);

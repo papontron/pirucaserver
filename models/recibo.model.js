@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const subVentaSchema = new mongoose.Schema({
   _vendedor:{type:mongoose.Schema.Types.ObjectId, ref:"User"},
-  vendedor:{type:String},
+  vendedor:{type:Object},
   _courier:{type:mongoose.Schema.Types.ObjectId,ref:"Courier"},
   tiendas:[{
     _tienda:{type:mongoose.Schema.Types.ObjectId,ref:"Tienda"},
@@ -28,7 +28,7 @@ const subVentaSchema = new mongoose.Schema({
 const reciboSchema = new mongoose.Schema({
   fechaVencimiento:{type:Number,required:true},
   _comprador:{type:mongoose.Schema.Types.ObjectId, ref:"User"},
-  comprador:{type:String},
+  comprador:{type:Object},
   monto:{type:Number,required:true},
   precioDelivery:{type:Number,required:true},
   montoTotal:{type:Number,required:true},
