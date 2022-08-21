@@ -11,6 +11,7 @@ const { crearReciboAgregarCompraVentaAndNotificate } = require("../functions/cre
 module.exports = (app) =>{
 
   app.post("/api/comprar",verifyOrigin,verifyCredentials,verifyCoins, async (req,res)=>{
+
     //recibimos todos los carItems comprados y los procesamos
     const fecha = new Date();
     const fechaVencimiento = fecha.getTime()+1*1000*20;
@@ -79,7 +80,7 @@ module.exports = (app) =>{
         });
 
         //*proveemos a cada tienda con sus respectivos productos
-        _tiendas.forEach(thisTienda=>{
+        _tiendas.forEach(async thisTienda=>{
           //calculo del monto por tienda:
           const productosXtienda = _.chain(cartItems).map(item=>{
             return item.tienda.id===thisTienda?{
@@ -91,11 +92,21 @@ module.exports = (app) =>{
             imagen:item.itemImagen,
             monto:(item.itemPrecio*item.itemCantidad)
           }:null}).compact().value();//.compact().value();//compact elimina los vacios y nulls
+
+          //!verificar q hay stock disponible ante todo
+          const productosXtiendaIds = productosXtienda.map(producto=>{
+            return producto._producto;
+          });
+          const productosWithoutStock = await Producto.find({_id:{$in:productosXtiendaIds},stock:0});
+          console.log({productosWithoutStock});
+          if(productosWithoutStock.length>0){
+            return res.send({mensaje:"alguno de los productos que seleccionaste ya no cuenta con stock",token,refreshToken});
+          }
           //*calculo del monto de venta de esta tienda:
           const montoTienda = productosXtienda.reduce((a,producto)=>a+Number(producto.monto),0)
           //!tambien podriamos calcular el monto por cada tienda
           const tiendaInfo = _.chain(cartItems).map(item=>{
-            console.log({item});
+            //console.log({item});
             return item.tienda.id===thisTienda?item.tienda:null
             }).compact().value();
           const codigoEntrega = crypto.randomBytes(2).toString('hex');
