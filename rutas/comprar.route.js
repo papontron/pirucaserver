@@ -5,8 +5,10 @@ const _ = require("lodash");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const User = mongoose.model("users");
+const Producto = mongoose.model("productos");
 const {sendMensajeAndNotification} = require("../functions/mensajes.functions");
 const { crearReciboAgregarCompraVentaAndNotificate } = require("../functions/crearNuevoRecibo");
+
 
 module.exports = (app) =>{
 
@@ -58,7 +60,7 @@ module.exports = (app) =>{
        vendedores:[],
      }
      //!generando las ventas:
-      vendedores.forEach(vendedor=>{//*para cada vendedor
+      vendedores.forEach(async vendedor=>{//*para cada vendedor
         //const seller = await User.findOne({_id:vendedor}).select("nombres apellidos");
         //!creamos un objecto con todos los productos por vendedor y grabamos
 
@@ -80,7 +82,7 @@ module.exports = (app) =>{
         });
 
         //*proveemos a cada tienda con sus respectivos productos
-        _tiendas.forEach(async thisTienda=>{
+        _tiendas.forEach(thisTienda=>{
           //calculo del monto por tienda:
           const productosXtienda = _.chain(cartItems).map(item=>{
             return item.tienda.id===thisTienda?{
@@ -92,16 +94,7 @@ module.exports = (app) =>{
             imagen:item.itemImagen,
             monto:(item.itemPrecio*item.itemCantidad)
           }:null}).compact().value();//.compact().value();//compact elimina los vacios y nulls
-
-          //!verificar q hay stock disponible ante todo
-          const productosXtiendaIds = productosXtienda.map(producto=>{
-            return producto._producto;
-          });
-          const productosWithoutStock = await Producto.find({_id:{$in:productosXtiendaIds},stock:0});
-          console.log({productosWithoutStock});
-          if(productosWithoutStock.length>0){
-            return res.send({mensaje:"alguno de los productos que seleccionaste ya no cuenta con stock",token,refreshToken});
-          }
+    
           //*calculo del monto de venta de esta tienda:
           const montoTienda = productosXtienda.reduce((a,producto)=>a+Number(producto.monto),0)
           //!tambien podriamos calcular el monto por cada tienda
@@ -119,6 +112,7 @@ module.exports = (app) =>{
             estado:"en tienda"
           });
         });
+        
         //!calculo del subtotal de todo la venta del vendedor
         let subTotal = 0;
         venta.tiendas.forEach(tienda=>{
@@ -136,6 +130,7 @@ module.exports = (app) =>{
           fecha,
           remitente:"Pirula puppy bot"
         })
+        return productosSinStock;
       });
       const _recibo = await crearReciboAgregarCompraVentaAndNotificate(user._id,newRecibo);
 
@@ -159,7 +154,13 @@ module.exports = (app) =>{
           nuevo:true,
           remitente:mensaje.remitente
         }
+        //!agregamos al comprador a la lista de cliente de cada vendedor
         await sendMensajeAndNotification(mensaje._user,message);
+        const vendedor = await User.findOne({_id:mensaje._user}).select("rating clientes");
+        if(!vendedor.clientes.includes(user._id)){
+          vendedor.clientes.push(user._id);
+          await vendedor.save();
+        }
       });
       console.log("success comprando");
       return res.send({mensaje:"success",token,refreshToken});

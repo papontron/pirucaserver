@@ -212,5 +212,18 @@ module.exports = (app)=>{
         refreshToken:req.user.refreshToken
       })
     }
-  })
+  });
+  app.post("/api/get_tienda_info",verifyOrigin, async (req,res)=>{
+    const {_tienda} = req.body;
+    console.log(_tienda)
+    try{
+      const tienda = await Tienda.findOne({_id:_tienda});
+      console.log({tienda})
+      return res.send({mensaje:"success",tienda});
+    }catch(e){
+      console.log(e);
+      return res.send({mensaje:e.message});
+    }
+    
+  });
 }

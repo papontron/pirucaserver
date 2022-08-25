@@ -15,7 +15,10 @@ const mongoose = require("mongoose");
   //   contenido:{type:String,required:true},
   //   fecha:{type:Date,default:new Date()}
   // });
-  
+  const ratingSchema = mongoose.Schema({
+    _user:{type:mongoose.Schema.Types.ObjectId,ref:"User"},
+    rating:{type:Number}
+  })
   const userSchema = mongoose.Schema({
     imagen:{type:String},
     email:{type:String, required:true},
@@ -31,6 +34,8 @@ const mongoose = require("mongoose");
     coordenadas:{type:Array,required:true},
     pirula:{type:String,default:"pirula"},
     _courier:{type:mongoose.Schema.Types.ObjectId,ref:"Courier",default:new mongoose.Types.ObjectId},
+    rating:[ratingSchema],
+    clientes:{type:Array,default:[]}
     //movimientos:[movimientoSchema]
     // recargas:[{type:recargaSchema,default:[]}],
     // mensajes:[{type:mensajeSchema,default:[]}]

@@ -9,7 +9,7 @@ module.exports = (app)=>{
   app.post("/api/check_user_profile",async (req,res)=>{
     const {userId} = req.body;
     try{
-      const user = await User.findOne({_id:userId});
+      const user = await User.findOne({_id:userId}).select("nombres apellidos telefono direccion rating clientes");
       if(!user){
         return res.send({
           mensaje:"el usuario no existe",
@@ -25,6 +25,37 @@ module.exports = (app)=>{
         mensaje:e.message
       })
     }
+  });
+
+  app.post("/api/update_vendedor_rating",verifyOrigin,verifyCredentials, async( req,res)=>{
+    const {user} = req;
+    const {_vendedor,rating} = req.body;
+    
+    const {token,refreshToken} = user;
+    console.log({_vendedor,rating,token,refreshToken})
+    try{     
+      const vendedor = await User.findOne({_id:_vendedor}).select("nombres apellidos telefono direccion rating clientes");
+      const existingRating = vendedor.rating.filter(valoracion=>{
+        const {_user} = valoracion;
+        return _user.toString() === user._id.toString();
+      });
+
+      if(existingRating.length>0){
+        vendedor.rating.forEach(valoracion=>{
+          if(valoracion._user.toString() === user._id.toString()){
+            valoracion.rating = rating;
+          }
+        })
+      }else{
+        vendedor.rating.push({_user:user._id,rating});
+      }
+      await vendedor.save();
+      return res.send({mensaje:"success",user:vendedor,token,refreshToken});
+    }catch(e){
+      console.log(e.message);
+      res.send({mensaje:e.message, token,refreshToken});
+    }
+    
   })
 
   app.post("/api/user_profile",verifyOrigin, verifyCredentials, async (req,res)=>{
