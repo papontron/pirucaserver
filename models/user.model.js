@@ -16,7 +16,7 @@ const mongoose = require("mongoose");
   //   fecha:{type:Date,default:new Date()}
   // });
   const ratingSchema = mongoose.Schema({
-    _user:{type:mongoose.Schema.Types.ObjectId,ref:"User"},
+    _user:{type:mongoose.Schema.Types.ObjectId},
     rating:{type:Number}
   })
   const userSchema = mongoose.Schema({
@@ -42,5 +42,5 @@ const mongoose = require("mongoose");
   },{timestamps:true});
 
 const User = new mongoose.model("users",userSchema);
-//module.exports = {User}
+module.exports = {User}
 

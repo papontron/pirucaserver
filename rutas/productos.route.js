@@ -6,9 +6,23 @@ const Tienda = mongoose.model("tiendas");
 const {verifyOrigin} = require("../middlewares/verifyOrigin");
 const io = require("../io").getIo();
 module.exports = (app)=>{
+  app.get("/api/productos/tienda/:tiendaId",verifyOrigin,async (req,res)=>{
+    console.log(req.params);
+    const {tiendaId} = req.params;
+    try{
+      const tienda = await Tienda.findOne({_id:tiendaId}).select({_id:0,nombre:1,direccion:1,telefono:1});
+      console.log({tienda});
+      const productos = await Producto.find({_tiendas:{$in:[tiendaId]}});
+      console.log({productos})
+      return res.send({mensaje:"success",productos,tienda});
+    }catch(e){
+      console.log(e);
+      res.send({mensaje:e.message});
+    }
+  })
 
   app.post("/api/productos/busqueda",verifyOrigin,async (req,res)=>{
-    const {searchKey,searchField,page} = req.body;
+    const {searchKey,searchField} = req.body;
     console.log({searchField,searchKey});
     try{
       
