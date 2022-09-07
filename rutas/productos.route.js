@@ -7,6 +7,38 @@ const {verifyOrigin} = require("../middlewares/verifyOrigin");
 const io = require("../io").getIo();
 module.exports = (app)=>{
 
+  app.post("/api/productos/busqueda",verifyOrigin,async (req,res)=>{
+    const {searchKey,searchField,page} = req.body;
+    console.log({searchField,searchKey});
+    try{
+      
+      if(searchKey){
+        const tiendas = await Tienda.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).sort({ventas:-1}).limit(25);
+        return res.send({mensaje:"success",tiendas,searchKey});
+      }else{
+        // const totalPages = await Producto.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).countDocuments();
+        const productos = await Producto.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).sort({boost:-1}).limit(25);
+        return res.send({mensaje:"success",productos,searchKey});
+      }
+      
+    }catch(e){
+      console.log(e);
+      return res.send({mensaje:e.message});
+    }
+  })
+
+  app.post("/api/productos/get_related_products",verifyOrigin,async (req,res)=>{
+    const {categoria,_product} = req.body;
+    try{
+      const relatedProducts = await Producto.find({_id:{$ne:_product},"categoria.codigo":categoria}).sort({boost:-1}).limit(25);
+      console.log({relatedProducts})
+      return res.send({mensaje:"success",relatedProducts});
+    }catch(e){
+      console.log(e);
+      res.send({mensaje:e.message,token,refreshToken});
+    }
+  });
+
   app.post("/api/productos/categorias/:categoria",verifyOrigin, async (req,res)=>{
     const {categoria} = req.params;
     const {page} = req.body;
@@ -23,7 +55,7 @@ module.exports = (app)=>{
   app.get("/api/get_productos",verifyOrigin, async (req,res)=>{//enviar todos los productos a la web
     try{
       console.log("queriying productos");
-      const productos = await Producto.find({}).sort({boost:-1});//sort by boost descendent boost:"asc" o boost:"desc"
+      const productos = await Producto.find({}).sort({boost:-1}).limit(25);//sort by boost descendent boost:"asc" o boost:"desc"
       return res.send({mensaje:"success",productos});
     }catch(error){
       return res.send({mensaje:error});

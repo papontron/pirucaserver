@@ -6,31 +6,67 @@ const { verifyOrigin } = require("../middlewares/verifyOrigin");
 module.exports = (app)=>{
   //
 
-  app.post("/api/check_user_profile",async (req,res)=>{
+  app.post("/api/check_user_profile",verifyOrigin,verifyCredentials,async (req,res)=>{
     const {userId} = req.body;
+    const {token, refreshToken} = req.user;
+    let isCliente = false;
     try{
-      const user = await User.findOne({_id:userId}).select("nombres apellidos telefono direccion rating clientes");
-      if(!user){
+      const userProfile = await User.findOne({
+        _id:userId
+      }).select("nombres apellidos telefono direccion rating clientes");
+
+  
+      if(!userProfile){
         return res.send({
           mensaje:"el usuario no existe",
+          token,
+          refreshToken,
         })
       }else{
+
+        if(userProfile.clientes.includes(req.user._id.toString())){
+          isCliente = true;
+        }
+  
+        const totalRating = userProfile.rating.reduce((p,c)=>p+c.rating,0);
+        const averageRating = (totalRating)/userProfile.rating.length;
+        console.log({totalRating});
+        console.log({averageRating});
+  
+        const clientRating = userProfile.rating.filter(rate=>{
+          return rate._user.toString() === req.user._id.toString();
+        })
+        console.log({clientRating})
+        console.log(clientRating[0].rating)
         return res.send({
           mensaje:"success",
-          user:user,
+          token,
+          refreshToken,
+          isCliente,
+          clientRating:clientRating[0].rating,
+          averageRating,
+          totalRatings:userProfile.rating.length,
+          user:{
+            nombres:userProfile.nombres,
+            apellidos:userProfile.apellidos,
+            telefono:userProfile.telefono,
+            direccion:userProfile.direccion,
+          }
         })
       }
     }catch(e){
+      console.log(e);
       res.send({
-        mensaje:e.message
+        mensaje:e.message,
+        token,
+        refreshToken
       })
     }
   });
 
   app.post("/api/update_vendedor_rating",verifyOrigin,verifyCredentials, async( req,res)=>{
     const {user} = req;
-    const {_vendedor,rating} = req.body;
-    
+    const {_vendedor,rating} = req.body; 
     const {token,refreshToken} = user;
     console.log({_vendedor,rating,token,refreshToken})
     try{     
@@ -49,10 +85,27 @@ module.exports = (app)=>{
       }else{
         vendedor.rating.push({_user:user._id,rating});
       }
-      await vendedor.save();
-      return res.send({mensaje:"success",user:vendedor,token,refreshToken});
+      const userProfile = await vendedor.save();
+      const totalRating = userProfile.rating.reduce((p,c)=>p+c.rating,0);
+      const averageRating = (totalRating)/userProfile.rating.length;
+
+      return res.send({
+        mensaje:"success",
+        token,
+        refreshToken,
+        isCliente:true,
+        clientRating:rating,
+        averageRating,
+        totalRatings:userProfile.rating.length,
+        user:{
+          nombres:userProfile.nombres,
+          apellidos:userProfile.apellidos,
+          telefono:userProfile.telefono,
+          direccion:userProfile.direccion,
+        }
+      })
     }catch(e){
-      console.log(e.message);
+      console.log(e);
       res.send({mensaje:e.message, token,refreshToken});
     }
     
