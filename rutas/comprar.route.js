@@ -130,7 +130,7 @@ module.exports = (app) =>{
           fecha,
           remitente:"Pirula puppy bot"
         })
-        return productosSinStock;
+        //return productosSinStock;
       });
       const _recibo = await crearReciboAgregarCompraVentaAndNotificate(user._id,newRecibo);
 
