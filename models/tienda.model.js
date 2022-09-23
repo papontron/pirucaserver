@@ -15,4 +15,5 @@ const tiendaSchema = new mongoose.Schema({
   rating:{type:Array,default:[]},
   ventas:{type:Number,default:0}
 });
+tiendaSchema.index({nombre:'text',tags:'text'});
 const Tienda = new mongoose.model("tiendas",tiendaSchema);

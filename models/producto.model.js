@@ -13,4 +13,5 @@ const productoSchema = new mongoose.Schema({
   _user:{type:mongoose.Schema.Types.ObjectId,ref:"User"},
   vendidos:{type:Number,default:0}
 },{timestamps:true});
+productoSchema.index({nombre:'text',tags:'text'});
 const Producto = new mongoose.model("productos",productoSchema);

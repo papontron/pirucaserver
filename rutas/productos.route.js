@@ -27,11 +27,13 @@ module.exports = (app)=>{
     try{
       
       if(searchKey){
-        const tiendas = await Tienda.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).sort({ventas:-1}).limit(25);
-        return res.send({mensaje:"success",tiendas,searchKey});
+        // const tiendas = await Tienda.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).sort({ventas:-1}).limit(25);
+        const tiendas = await Tienda.find({$text:{$search:searchField}});
+        return res.send({mensaje:"success",tiendas,searchKey}).sort({ventas:-1}).limit(25);
       }else{
         // const totalPages = await Producto.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).countDocuments();
-        const productos = await Producto.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).sort({boost:-1}).limit(25);
+        // const productos = await Producto.find({$or:[{nombre:{$regex:searchField,$options:"gi"}},{tags:{$regex:searchField,$options:"gi"}}]}).sort({boost:-1}).limit(25);
+        const productos = await Producto.find({$text:{$search:searchField}}).sort({boost:-1}).limit(25);
         return res.send({mensaje:"success",productos,searchKey});
       }
       

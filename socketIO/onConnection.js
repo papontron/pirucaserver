@@ -18,7 +18,7 @@ module.exports = (io)=>{
           const newArrivals = await Producto.find({}).sort([["createdAt",-1]]).limit(25);
           //fetchear couriers cercanos
           const couriers = await Courier.find({});
-          const categorias = await Categoria.find({});
+          const categorias = await Categoria.find({}).sort({codigo:1});
 
           async function fetchCategoriasCount(){
             const categoriasCount = await Promise.all(categorias.map(async categoria=>{
