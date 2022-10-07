@@ -7,6 +7,12 @@ module.exports = (app)=>{
   //
 
   app.post("/api/check_user_profile",verifyOrigin,verifyCredentials,async (req,res)=>{
+    /*
+    aqui enviamnos:
+      avarage rating de la persona 
+      el rating del cliente a la persona
+      la info de la persona
+    */
     const {userId} = req.body;
     const {token, refreshToken} = req.user;
     let isCliente = false;
@@ -26,16 +32,29 @@ module.exports = (app)=>{
 
         if(userProfile.clientes.includes(req.user._id.toString())){
           isCliente = true;
+        }else{
+          return res.send({
+            mensaje:"success",
+            token,
+            refreshToken
+          })
         }
-  
-        const totalRating = userProfile.rating.reduce((p,c)=>p+c.rating,0);
+        
+        const totalRating = userProfile.rating.reduce((p,c)=>p+c.rating,0);//cambiar por $project
+        // const averageRating=User.aggregate([
+        //   {$match:{_id:userId}},
+        //   {$unwind:"$rating"},
+        //   {$avg:{}}
+        // ]);
+        
         const averageRating = (totalRating)/userProfile.rating.length;
         console.log({totalRating});
         console.log({averageRating});
   
         const clientRating = userProfile.rating.filter(rate=>{
           return rate._user.toString() === req.user._id.toString();
-        })
+        });
+        
         console.log({clientRating})
         console.log(clientRating[0].rating)
         return res.send({

@@ -16,7 +16,7 @@ module.exports = (app) =>{
 
     //recibimos todos los carItems comprados y los procesamos
     const fecha = new Date();
-    const fechaVencimiento = fecha.getTime()+1*1000*20;
+    const fechaVencimiento = fecha.getTime()+1*1000*60*30; //30 minutos
     const {user,body} = req;
     const {cartItems,_courier} = body;
     console.log({cartItems});
@@ -130,6 +130,7 @@ module.exports = (app) =>{
           fecha,
           remitente:"Pirula puppy bot"
         })
+        //todo analizar si el producto tiene o no stock
         //return productosSinStock;
       });
       const _recibo = await crearReciboAgregarCompraVentaAndNotificate(user._id,newRecibo);
