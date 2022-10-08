@@ -10,7 +10,7 @@ module.exports = (io)=>{
       async function getInitData(){
         console.log("sending initial data");
         try{
-          //tratar de fetchear solo tiendas cercanas
+          //tratar de fetchear solo tiendas cercanas en el futuro
           const tiendas = await Tienda.find({});
           //fetchear solo productos de las tiendas cercanas
           const productos = await Producto.find({}).sort([["boost",-1]]).limit(25);
